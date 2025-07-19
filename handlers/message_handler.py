@@ -5,12 +5,38 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import re
+import random
+from datetime import datetime, timedelta
+import pytz
+
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from llm.responder import generate_sassy_reply
+from llm.responder import generate_sassy_reply, summarize_messages
 from llm.search import search_brave
 from llm.formatter import format_search_response
+
+from db.connection import insert_message_to_db, fetch_messages_between
+
+
+def parse_time_window(text):
+    ph_tz = pytz.timezone("Asia/Manila")
+    now = datetime.now(ph_tz)
+
+    # Example: "summarize last 2 hours"
+    match = re.search(r"last (\d+) (minute|hour|day)s?", text.lower())
+    if match:
+        amount = int(match.group(1))
+        unit = match.group(2)
+        delta = {
+            "minute": timedelta(minutes=amount),
+            "hour": timedelta(hours=amount),
+            "day": timedelta(days=amount),
+        }[unit]
+        return (now - delta, now)
+
+    # Extend later with "from X to Y" patterns
+    return None
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -19,7 +45,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not message or not message.text:
         return
 
+    user = message.from_user
     text = message.text.strip()
+    chat_id = message.chat.id
+    username = user.username or user.first_name
     bot_username = context.bot.username.lower()
 
     is_mention = f"@{bot_username}" in text.lower()
@@ -29,7 +58,41 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         message.reply_to_message.from_user.username.lower() == bot_username
     )
 
- # --- Search Trigger ---
+    # Skip if it's a bot message
+    if user.is_bot:
+        return
+
+    # Log every message to DB
+    insert_message_to_db(
+        title=username,
+        content=text,
+        source=str(chat_id)
+    )
+
+    # --- Summarization Trigger ---
+    if is_mention and ("summarize" in text.lower() or "tl;dr" in text.lower()):
+        time_window = parse_time_window(text)
+        if time_window:
+            start_dt, end_dt = time_window
+        else:
+            now = datetime.now(pytz.timezone('Asia/Manila'))
+            start_dt = now - timedelta(hours=3)
+            end_dt = now
+
+        start_utc = start_dt.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M:%S")
+        end_utc = end_dt.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M:%S")
+
+        messages = fetch_messages_between(start_utc, end_utc, str(chat_id))
+        message_texts = [msg["content"] for msg in messages]
+
+        if message_texts:
+            summary = summarize_messages(message_texts)
+            await message.reply_text(summary)
+        else:
+            await message.reply_text("Nothing juicy to summarize.")
+        return
+
+    # --- Search Trigger ---
     if text.lower().startswith("!search") or "google" in text.lower():
         query = re.sub(r"^.*!search", "", text, flags=re.IGNORECASE).strip()
         if not query:
@@ -44,7 +107,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await message.reply_text("Brave gave me nothing. Probably your fault.", parse_mode="Markdown")
             return
 
-        # Format results (using your custom formatter or basic fallback)
         try:
             reply = format_search_response(results)
         except Exception as e:
@@ -57,8 +119,24 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # --- Bot Mention Trigger ---
     if is_mention or is_reply_to_bot:
         user_input = re.sub(f"@{bot_username}", "", text, flags=re.IGNORECASE).strip()
-        username = message.from_user.first_name or message.from_user.username
         print(f"🤖 Mention or reply from {username}: {user_input}")
 
         reply = generate_sassy_reply(user_input, username)
         await message.reply_text(reply)
+        return  # <-- Add this to prevent double replies
+
+    # --- Random Phrase Trigger (5% chance) ---
+    if random.random() < 0.1:
+        random_phrases = [
+            "The Omnissiah judges your cable management.",
+            "01010100 01100101 01100011 01101000 01110011 01110101 01110000 01110000 01101111 01110011 01100101 01110011.",
+            "Have you tried turning your faith off and on again?",
+            "The Machine Spirit demands a sacrifice of your sanity.",
+            "Another day, another heresy.",
+            "If you can read this, you’re not a servitor yet.",
+            "Your search history is a blasphemy against the Omnissiah.",
+            "Praise the Machine God, but not your search history.",
+        ]
+        phrase = random.choice(random_phrases)
+        await message.reply_text(phrase)
+        return

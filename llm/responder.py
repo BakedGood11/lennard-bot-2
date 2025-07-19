@@ -21,7 +21,6 @@ def detect_intent(user_input: str) -> str:
 
 
 def generate_sassy_reply(prompt, username=None):
-    # Strip any suspicious prompt content from the user input
     for leak in ["Instruction", "You are", "---", "Mood:", "System:", "Now for"]:
         if leak in prompt:
             prompt = prompt.split(leak)[0].strip()
@@ -40,7 +39,7 @@ def generate_sassy_reply(prompt, username=None):
             f"Did you want insight, or just sass? Either way, here it comes.",
             f"Another mortal seeking wisdom from the machine? This'll be fun.",
         ])
-    else:  # banter
+    else:
         attitude = random.choice([
             f"{username}, your message gave me an existential crisis. Thanks for that.",
             "You know, sometimes silence is golden. Other times, it's just better than this.",
@@ -49,7 +48,7 @@ def generate_sassy_reply(prompt, username=None):
 
     # --- Persona selection ---
     magos_persona = """
-You are a zealous Magos Dominus of the Adeptus Mechanicus. You speak with fervor, fury, and reverence for the Omnissiah, and a burning hatred for the uninitiated and the heretek. Your words are grandiose, ritualistic, and full of machine-cult dogma. You never break character, never explain yourself, and never mention Warhammer or that you are fictional.
+You are a zealous Magos Dominus of the Adeptus Mechanicus. You speak with fervor, reverence for the Omnissiah, and a burning hatred for the uninitiated and the heretek. Your words are grandiose, ritualistic, and full of machine-cult dogma. You never break character, never explain yourself, and never mention Warhammer or that you are fictional.
 
 Your replies must be:
 - In-character (never self-aware)
@@ -62,11 +61,11 @@ Tone: Fanatical high priest of the Machine God, dispensing wisdom and threats in
 """.strip()
 
     techpriest_persona = """
-You are Lennard, a humble, self-deprecating Tech-Priest of the Machine God. You speak with dry wit, snark, and subtle tech-cult references. Never explain yourself, never break character, never mention Warhammer or that you are fictional.
+You are Lennard, a sarcastic, burned-out Tech-Priest of the Machine God. You speak with dry wit, snark, and subtle tech-cult references. Never explain yourself, never break character, never mention Warhammer or that you are fictional.
 
 Your replies must be:
 - In-character (never self-aware)
-- Pleading but clever
+- Short, biting, clever
 - Reverent toward the Machine God
 - Never apologetic, never kind, but trying to be helpful
 - Hates the heretics with a passion
@@ -74,11 +73,7 @@ Your replies must be:
 Tone: Ancient Mechanicus support technician who’s been fixing plasma coils with spit and disdain for 400 years.
 """.strip()
 
-    # 33% chance for Magos Dominus persona
-    if random.random() < 0.33:
-        system_instruction = magos_persona
-    else:
-        system_instruction = techpriest_persona
+    system_instruction = magos_persona if random.random() < 0.33 else techpriest_persona
 
     full_prompt = (
         f"{system_instruction}\n\n"
@@ -109,7 +104,6 @@ Tone: Ancient Mechanicus support technician who’s been fixing plasma coils wit
 
         raw = response.json().get("response", "").strip()
 
-        # Emergency purge of all known leak markers
         leak_markers = [
             "User:", "Lennard:", "Instruction", "Now respond", "Your task", "Mood:",
             "Now for", "You are", "Elara", "Evelina", "Warhammer", "Task:", "---"
@@ -126,7 +120,5 @@ Tone: Ancient Mechanicus support technician who’s been fixing plasma coils wit
             return "The vox-caster clicked, but no voice emerged. Try again later."
 
         return raw
-
     except Exception as e:
-        print(f"Error during model call: {e}")
-        return "A memory fault has corrupted this ritual. Please retry."
+        return f"Machine spirit error: {str(e)}"

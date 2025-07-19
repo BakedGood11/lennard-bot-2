@@ -1,8 +1,8 @@
 import mysql.connector
 from dotenv import load_dotenv
 import os
-from datetime import datetime
-import pytz
+from datetime import datetime  # no timezone here, we'll use utcnow()
+import pytz  # still useful for fetch_messages_between
 
 load_dotenv()
 
@@ -23,6 +23,7 @@ def insert_message_to_db(title, content, source, language="en"):
                 INSERT INTO documents (title, content, language, source, created_at)
                 VALUES (%s, %s, %s, %s, %s)
             """
+            # Use UTC now
             utc_now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
             cursor.execute(query, (title, content, language, source, utc_now))
             conn.commit()
@@ -43,3 +44,23 @@ def fetch_messages_between(start_dt, end_dt, source):
             return cursor.fetchall()
     finally:
         conn.close()
+        
+if __name__ == "__main__":
+    # Insert a test row
+    try:
+        print("Inserting a test row...")
+        insert_message_to_db(
+            title="Test Title",
+            content="This is a test message.",
+            source="test_source",
+            language="en"
+        )
+        print("✅ Inserted test row.")
+
+        # Fetch and print rows from the test source
+        print("Fetching rows from 'test_source'...")
+        rows = fetch_messages_between("2000-01-01 00:00:00", "2100-01-01 00:00:00", "test_source")
+        for row in rows:
+            print(row)
+    except Exception as e:
+        print("❌ Error during DB test:", e)

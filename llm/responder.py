@@ -122,3 +122,62 @@ Tone: Ancient Mechanicus support technician who’s been fixing plasma coils wit
         return raw
     except Exception as e:
         return f"Machine spirit error: {str(e)}"
+import requests
+
+def summarize_messages(messages: list[str]) -> str:
+    """
+    Given a list of chat message strings, invoke the Mistral-instruct model
+    to produce a dry, sarcastic summary under 150 words.
+    """
+    # Combine messages into a bullet list
+    combined = "\n".join(f"- {msg}" for msg in messages)
+
+    # System prompt to set tone and constraints
+    system_prompt = """
+You are Lennard, a humble Tech-Priest of the Machine God. You have been tasked
+with reviewing logs from a public vox-channel (Telegram group chat) and
+providing a brief but sarcastic summary of what the humans have been discussing.
+
+You are:
+- Tired of the nonsense
+- Clever and blunt in your assessment
+- Fully in-character as a dry, sardonic tech-priest
+- Not explaining things like an assistant — just reporting and mocking
+
+Keep your summary under 150 words. Be sarcastic, dry, and vaguely annoyed.
+Do not mention you're summarizing or that you read a transcript.
+""".strip()
+
+    prompt = (
+        f"{system_prompt}\n\n"
+        f"Here are the vox-logs:\n{combined}\n\n"
+        f"Your summary:"
+    )
+
+    try:
+        resp = requests.post(
+            "http://localhost:11434/api/generate",
+            json={
+                "model": "mistral:instruct",
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "num_predict": 200,
+                    "temperature": 0.9,
+                    "top_p": 0.95,
+                    "stop": ["User:", "Lennard:", "Instruction", "Summary:", "---"]
+                }
+            },
+            timeout=15
+        )
+        raw = resp.json().get("response", "").strip()
+
+        # If the model refuses or returns too little, bail out
+        if not raw or len(raw.split()) < 3:
+            return "The logs were barren or idiotic. No summary possible."
+
+        return raw
+
+    except Exception as e:
+        print(f"[SUMMARY ERROR] {e}")
+        return "The Machine Spirit refuses to summarize this nonsense. Try again later."

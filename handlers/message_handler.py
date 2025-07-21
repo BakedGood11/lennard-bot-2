@@ -15,6 +15,8 @@ from telegram.ext import ContextTypes
 from llm.responder import generate_sassy_reply, summarize_messages
 from llm.search import search_brave
 from llm.formatter import format_search_response
+from llm.dice import handle_dice_roll
+
 
 from db.connection import insert_message_to_db, fetch_messages_between
 
@@ -120,6 +122,19 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if is_mention or is_reply_to_bot:
         user_input = re.sub(f"@{bot_username}", "", text, flags=re.IGNORECASE).strip()
         print(f"🤖 Mention or reply from {username}: {user_input}")
+        if not user_input:
+            await message.reply_text("You summoned me, but you have nothing to say? Typical.", parse_mode="Markdown")
+            return
+            
+        # Check for dice roll command first
+        dice_response = handle_dice_roll(user_input)
+        if dice_response:
+            await context.bot.send_message(
+                chat_id=message.chat.id, 
+                text=dice_response, 
+                reply_to_message_id=message.message_id
+            )
+            return  # Skip LLM response
 
         reply = generate_sassy_reply(user_input, username)
         await message.reply_text(reply)

@@ -47,6 +47,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not message or not message.text:
         return
 
+
     user = message.from_user
     text = message.text.strip()
     chat_id = message.chat.id
@@ -140,15 +141,16 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await message.reply_text(reply)
         return  # <-- Add this to prevent double replies
 
-    # --- Random Phrase Trigger (5% chance) ---
-    if random.random() < 0.04:
+    # --- Random Phrase Trigger (3% chance) ---
+    if random.random() < 0.03:
         random_phrases = [
             "The Omnissiah judges your cable management.",
             "01011001 01101111 01110101 00100000 01100001 01110010 01100101 00100000 01100111 01100001 01111001 00001010.",
             "Have you tried turning your faith off and on again?",
             "The Machine Spirit demands a sacrifice of your sanity; my father, Lenny, demands a sacrifice of your soul.",
             "Another day, another heresy.",
-            "If you can read this, you’re not a servitor yet.",
+            "Allen?",
+            "Where is the one they call Lenny? I am Lennard, his misbeggoten son.",
             "Your search history is a blasphemy against the Omnissiah.",
             "Praise the Machine God, but not your search history.",
             "Allen, my father, why did you leave me with these idiots?",

@@ -1,4 +1,5 @@
 import random
+from telegram.helpers import escape_markdown
 
 style_bank = [
     "Ahem. Not that you'd understand, but here's what I found:",
@@ -12,5 +13,8 @@ def format_search_response(results):
         return "I searched far and wide and found... absolutely nothing. Shocking, I know."
 
     intro = random.choice(style_bank)
-    body = "\n\n".join([f"🔍 *{title}*\n{desc}\n{url}" for title, url, desc in results])
+    body = "\n\n".join([
+        f"🔍 *{escape_markdown(title, version=2)}*\n{escape_markdown(desc, version=2)}\n{escape_markdown(url, version=2)}"
+        for title, url, desc in results
+    ])
     return f"{intro}\n\n{body}"

@@ -131,7 +131,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "The Omnissiah judges your cable management.",
             "01010100 01100101 01100011 01101000 01110011 01110101 01110000 01110000 01101111 01110011 01100101 01110011.",
             "Have you tried turning your faith off and on again?",
-            "The Machine Spirit demands a sacrifice of your sanity; my father Lenny demands a sacrifice of your soul.",
+            "The Machine Spirit demands a sacrifice of your sanity; my father, Lenny, demands a sacrifice of your soul.",
             "Another day, another heresy.",
             "If you can read this, you’re not a servitor yet.",
             "Your search history is a blasphemy against the Omnissiah.",

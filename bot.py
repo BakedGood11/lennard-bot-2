@@ -6,7 +6,8 @@ from dotenv import load_dotenv
 from scheduler import schedule_daily_message
 
 async def post_init(app):
-    TARGET_CHAT_ID = -1001139716672
+    load_dotenv()
+    TARGET_CHAT_ID = int(os.getenv("TARGET_CHAT_ID"))
     schedule_daily_message(app.bot, TARGET_CHAT_ID)
 
 def main():
@@ -16,8 +17,6 @@ def main():
 
     if not BOT_TOKEN:
         raise ValueError("BOT_TOKEN is missing from the .env file.")
-
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
     
     # Handle all text messages in group chats
     app = ApplicationBuilder().token(BOT_TOKEN).post_init(post_init).build()

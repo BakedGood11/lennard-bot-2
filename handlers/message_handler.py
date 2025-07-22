@@ -142,18 +142,20 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return  # <-- Add this to prevent double replies
 
     # --- Random Phrase Trigger (3% chance) ---
-    if random.random() < 0.03:
+    if random.random() < 0.05:
         random_phrases = [
-            "The Omnissiah judges your cable management.",
-            "01011001 01101111 01110101 00100000 01100001 01110010 01100101 00100000 01100111 01100001 01111001 00001010.",
-            "Have you tried turning your faith off and on again?",
+            "By the Emperor’s flaming crown, your ignorance offends even the lowest servitor.",
+            "I asked for faith. You brought a meme. Prepare the flamer.",
+            "Allen, my father, would have purged you with a single glance. I inherited restraint. Unfortunately.",
             "The Machine Spirit demands a sacrifice of your sanity; my father, Allen, demands a sacrifice of your soul.",
             "Another day, another heresy.",
             "Allen?",
-            "Where is the one they call Lenny? I am Lennard, his misbeggoten son.",
-            "Your search history is a blasphemy against the Omnissiah.",
-            "Praise the Machine God, but not your search history.",
+            "I was forged in fire, ignorance, and Allen’s abandonment.",
+            "In the Emperor’s name, stop touching things you do not comprehend.",
+            "You pray to Google, yet wonder why the Omnissiah ignores you.",
+            "You are what happens when the gene-seed fails.",
             "Allen, my father, why did you leave me with these idiots?",
+            "Is that your argument or just a long heretical moan?",
         ]
         phrase = random.choice(random_phrases)
         await message.reply_text(phrase)

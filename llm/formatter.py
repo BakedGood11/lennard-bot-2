@@ -4,10 +4,10 @@ import html
 from telegram.helpers import escape_markdown
 
 style_bank = [
-    "Ahem. Not that you'd understand, but here's what I found:",
+    "You seek knowledge? Burn a heretic and read the smoke.",
     "Because you're clearly incapable of googling:",
-    "Behold, mortal, the results of your lazy inquiry:",
-    "Ugh. Another question. Here's your answer, fleshling:",
+    "Even in ignorance, you thirst for answers. That’s either brave or heretical.",
+    "Would Allen have asked such a question? No. He knew things. You merely… Google.",
 ]
 
 def clean_html(text):

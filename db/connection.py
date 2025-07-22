@@ -1,8 +1,8 @@
 import mysql.connector
 from dotenv import load_dotenv
 import os
-from datetime import datetime  # no timezone here, we'll use utcnow()
-import pytz  # still useful for fetch_messages_between
+from datetime import datetime 
+import pytz  
 
 load_dotenv()
 

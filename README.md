@@ -1,0 +1,1 @@
+This project is meant to be a playground as I learn more about SQL and Python; as such, most of the current (21/07/'25) code is a result of repetitive prompting. Expect changes as I think of added modules and work on fine-tuning the initial stabl ~vibe-code~. 

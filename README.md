@@ -9,3 +9,13 @@ Holds all active "feature" modules for the bot.
 
 ### Scheduler
 Module in charge of sending "inspirational" messages.
+
+# .env File
+To use the bot, create a (.env) file with the following;
+- OPENAI_API_KEY
+- BOT_TOKEN
+- BRAVE_API_KEY
+- DB_HOST
+- DB_USER
+- DB_PASS
+- TARGET_CHAT_ID

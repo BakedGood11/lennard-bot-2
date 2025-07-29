@@ -11,7 +11,7 @@ async def post_init(app):
     schedule_daily_message(app.bot, TARGET_CHAT_ID)
 
 def main():
-    load_dotenv()
+    load_dotenv() 
     BOT_TOKEN = os.getenv("BOT_TOKEN")
     BRAVE_API_KEY = os.getenv("BRAVE_API_KEY")
 
@@ -23,7 +23,9 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & filters.ChatType.GROUPS, handle_message))
 
     print("🟢 Lennard 2.0 is now listening for group mentions...")
-    app.run_polling()
+    app.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
     main()
+    
+

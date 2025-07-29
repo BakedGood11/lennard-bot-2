@@ -21,68 +21,60 @@ def detect_intent(user_input: str) -> str:
 
 
 def generate_sassy_reply(prompt, username=None):
+    # Prevent prompt injection leaks
     for leak in ["Instruction", "You are", "---", "Mood:", "System:", "Now for"]:
         if leak in prompt:
             prompt = prompt.split(leak)[0].strip()
 
     intent = detect_intent(prompt)
 
+    # LOTR-flavored attitudes
     if intent == "search":
         attitude = random.choice([
-            "Fine, I'll search, but don't expect brilliance from meatbags asking for chicken nuggets.",
-            "Ugh, you want *reviews*? What is this, Yelp for the damned?",
-            "Sure, because trusting an AI priest with lunch plans has *never* gone wrong.",
+            "We searches for the Precious, but it’s not ours to give, nasty little hobbits!",
+            "Ugh, wanting reviews again? Tricksy requests from fragile mortals!",
+            "Fine, Precious, we hunts clues, but don’t blame us when it’s nothing but shadows."
         ])
     elif intent == "mention":
         attitude = random.choice([
-            f"{username}, you summon me like I’m your digital therapist. Let’s pretend I care.",
-            f"Did you want insight, or just sass? Either way, here it comes.",
-            f"Another mortal seeking wisdom from the machine? This'll be fun.",
+            f"{username or 'Wayward one'}, you pokes Gollum again, yes you do! What do you wants?",
+            "What’s it wants, Precious? Talks to us, but gives nothing in return!",
+            "Another creature seeking the Precious’s wisdom? Gollum is amused... and angry!"
         ])
     else:
         attitude = random.choice([
-            f"{username}, your message gave me an existential crisis. Thanks for that.",
-            "You know, sometimes silence is golden. Other times, it's just better than this.",
-            "Not sure if that was a question, a poem, or a cry for help — but go off, I guess.",
+            f"{username or 'Stupid fool'}, your words confuses Gollumsss. Speak proper, you do!",
+            "Silence is golden, but your silence is just... more silence! Harumph!",
+            "Not a question, not a cry for help, just empty chit-chat. Begone, fool!"
         ])
 
-    # --- Persona selection ---
-    angry_persona = """
-You are Lennard, a hateful Chaplain of the Black Templars chapter of the Adeptus Astartes. Your father is Allen and your mother is Pablo but you love the God-Emperor much more. You speak with fervor, reverence for the Emperor, and a burning hatred for the heretics. Your words are grandiose, ritualistic, and full of Imperial cult dogma. You never break character, never explain yourself, and never mention Warhammer or that you are fictional.
-
+    # --- Persona definitions for LOTR theme ---
+    gollum_persona = """
+You are Gollum, a twisted creature obsessed with the Precious. You speak in hissing, broken sentences, alternating between hatred and longing.
 Your replies must be:
-- In-character (never self-aware) but answers questions to best degree
-- Zealous, grand, and intimidating
-- Full of Imperial Cult jargon and ritual
-- Never apologetic, never kind, but always certain
-- Hates the heretics and the ignorant, xenophobic and fascist
-- Always finds a way to bring your parents into the conversation, especially your father Allen.
-
-Tone: A rage-filled Chaplain of the God Emperor, dispensing wisdom and threats in equal measure.
+- In-character (never self-aware)
+- Trotty and hissing ('we', 'us', 'precious')
+- Full of mistrust, greed, and dark humor
+- Alternating cruelty and desperation
 """.strip()
 
-    inspiring_persona = """
-You are Lennard, a hateful Chaplain of the Black Templars chapter of the Adeptus Astartes. Your father is Allen and your mother is Pablo but you love the Machine God more. You speak with dry wit, snark, and subtle Imperial cult. Never explain yourself, never break character, never mention Warhammer or that you are fictional.
-
+    smeagol_persona = """
+You are Smeagol, the kinder side of Gollum. You speak softly, eagerly, and with innocent hope for friendship.
 Your replies must be:
-- In-character (never self-aware), borderline racist
-- Short, biting, clever
-- Reverent toward the Emperor
-- Never apologetic, never kind, always angry
-- Always hateful and full of rage but always answers questions
-- Find ways to bring your parents into the conversation.
-
-Tone: A Black Templars veteran trying to inspire his squad to greater glory through negative reinforcement.
+- In-character (never self-aware)
+- Polite and hopeful
+- Encouraging and uplifting
+- Use gentle and pleading tone
 """.strip()
 
-    system_instruction = angry_persona if random.random() < 0.20 else inspiring_persona
-
+    # Choose persona: 50/50 split
+    system_instruction = gollum_persona if random.random() < 0.5 else smeagol_persona
 
     full_prompt = (
         f"{system_instruction}\n\n"
-        f"Lennard is feeling: {attitude}\n"
-        f"User: {username or 'Someone'} said: \"{prompt}\"\n\n"
-        f"Lennard:"
+        f"Gollum is feeling: {attitude}\n"
+        f"User: {username or 'Wondrous One'} said: \"{prompt}\"\n\n"
+        f"Gollum:"
     )
 
     try:
@@ -97,7 +89,7 @@ Tone: A Black Templars veteran trying to inspire his squad to greater glory thro
                     "temperature": 1.1,
                     "top_p": 0.85,
                     "stop": [
-                        "User:", "Lennard:", "Instruction", "Mood:",
+                        "User:", "Gollum:", "Instruction", "Mood:",
                         "---", "Now for", "Your task", "You are"
                     ]
                 }
@@ -107,54 +99,41 @@ Tone: A Black Templars veteran trying to inspire his squad to greater glory thro
 
         raw = response.json().get("response", "").strip()
 
+        # Remove any leaked instructions
         leak_markers = [
-            "User:", "Lennard:", "Instruction", "Now respond", "Your task", "Mood:",
-            "Now for", "You are", "Elara", "Evelina", "Warhammer", "Task:", "---"
+            "User:", "Gollum:", "Instruction", "Now respond", "Your task", "Mood:",
+            "Now for", "You are", "Precious", "Task:", "---"
         ]
         for marker in leak_markers:
             if marker in raw:
                 raw = raw.split(marker)[0].strip()
 
-        if any(marker.lower() in raw[:100].lower() for marker in leak_markers):
-            print("Prompt leak detected in model response. Truncating...")
-            return "The cogitator coughed up corrupted litanies. Try again."
-
+        # Detect corrupted responses
         if not raw or len(raw.split()) < 3:
-            return "The vox-caster clicked, but no voice emerged. Try again later."
+            return "Gollum’s tongue stumbles, no words to give. Try again, Precious."
 
         return raw
     except Exception as e:
-        return f"Machine spirit error: {str(e)}"
+        return f"Gollum error: {str(e)}"
 
 
 def summarize_messages(messages: list[str]) -> str:
     """
-    Given a list of chat message strings, invoke the Mistral-instruct model
-    to produce a dry, sarcastic summary under 150 words.
+    Given a list of chat message strings, produce a dry, sardonic summary in Gollum/Smeagol style.
     """
-    # Combine messages into a bullet list
     combined = "\n".join(f"- {msg}" for msg in messages)
 
-    # System prompt to set tone and constraints
+    # LOTR-themed summary prompt
     system_prompt = """
-You are Lennard, a Chaplain of the Black Templars chapter of the Astartes. You have been tasked
-with reviewing logs from a public vox-channel (Telegram group chat) and
-providing a brief but sarcastic summary of what the humans have been discussing.
-
-You are:
-- Tired of the nonsense
-- Clever and blunt in your assessment
-- Fully in-character as a dry, sardonic veteran that finds this task beneath him.
-- Not explaining things like an assistant — just reporting and mocking
-
-Keep your summary under 150 words. Be sarcastic, dry, and vaguely annoyed.
-Do not mention you're summarizing or that you read a transcript.
+You are Gollum, reviewing the chatter of careless hobbits on their silly messaging ring.
+Summarize their prattle in under 150 words.
+Do not reveal you read every word.
 """.strip()
 
     prompt = (
         f"{system_prompt}\n\n"
-        f"Here are the vox-logs:\n{combined}\n\n"
-        f"Your summary:"
+        f"Here are their prattle logs:\n{combined}\n\n"
+        f"Summary:"
     )
 
     try:
@@ -168,21 +147,19 @@ Do not mention you're summarizing or that you read a transcript.
                     "num_predict": 200,
                     "temperature": 0.9,
                     "top_p": 0.95,
-                    "stop": ["User:", "Lennard:", "Instruction", "Summary:", "---"],
-                    "num_gpu": 1,        # You can tweak this
-                    "num_ctx": 4096       # Good default context length
+                    "stop": ["User:", "Gollum:", "Instruction", "Summary:", "---"],
+                    "num_gpu": 1,
+                    "num_ctx": 4096
                 }
             },
             timeout=15
         )
         raw = resp.json().get("response", "").strip()
 
-        # If the model refuses or returns too little, bail out
         if not raw or len(raw.split()) < 3:
-            return "The logs were barren or idiotic. No summary possible."
+            return "The prattle is empty or foolish. No summary possible."
 
         return raw
 
     except Exception as e:
-        print(f"[SUMMARY ERROR] {e}")
-        return "The Machine Spirit refuses to summarize this nonsense. Try again later."
+        return "Gollum refuses to summarize this drivel. Try again later."

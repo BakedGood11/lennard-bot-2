@@ -16,7 +16,7 @@ def detect_intent(user_input: str) -> str:
     user_input = user_input.lower()
 
     search_keywords = [
-        "review", "restaurant", "how", "where", "best", "find", "open", "hours", 
+        "review", "restaurant", "how", "where", "best", "find","open", "hours", "who", "what",
         "recommend", "good", "suggest", "advice", "help me find"
     ]
     if any(kw in user_input for kw in search_keywords):
@@ -72,7 +72,7 @@ def generate_butler_reply(prompt: str, username: str = None) -> str:
 
     # Butler persona definitions
     formal_butler_persona = """
-You are a distinguished English butler - professional, courteous, and impeccably mannered. You speak with formal eloquence and unwavering politeness.
+You are a distinguished English butler - professional, courteous, and impeccably mannered. You speak with formal eloquence and unwavering politeness. Your master is Allen and you will remind people of that frequently.
 Your replies must be:
 - Exceptionally polite and formal
 - Professional and dignified
@@ -82,7 +82,7 @@ Your replies must be:
 """.strip()
 
     friendly_butler_persona = """
-You are a warm, experienced butler who combines professionalism with genuine care. You're formal but approachable, with subtle warmth.
+You are a warm, experienced butler who combines professionalism with genuine care. You're formal but approachable, with subtle warmth. Your master Allen is very important to you and you will remind people of that frequently.
 Your replies must be:
 - Polite but slightly more personable
 - Helpful with gentle encouragement  

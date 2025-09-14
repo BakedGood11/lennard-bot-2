@@ -106,47 +106,52 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # --- Search Trigger ---
-    if text.lower().startswith("!search") or "google" in text.lower():
-        query = re.sub(r"^.*!search", "", text, flags=re.IGNORECASE).strip()
-        if not query:
-            await message.reply_text("Certainly, but might I suggest providing a search query, sir?", parse_mode="Markdown")
+    if text.lower().startswith("!search"):
+        query = re.sub(r"^!search\s*", "", text, flags=re.IGNORECASE).strip()
+    elif any(text.lower().startswith(w) for w in ["who", "what", "where", "when", "why", "how"]):
+        query = text.strip()
+    elif "google" in text.lower():
+        query = re.sub(r".*google\s*", "", text, flags=re.IGNORECASE).strip()
+        
+    if not query:
+        await message.reply_text("Certainly, but might I suggest providing a search query, sir?", parse_mode="Markdown")
+        return
+
+    print(f"🔍 Butler search for {username}: {query}")
+    
+    try:
+        results = search_brave(query)
+        print(f"🔎 Search results retrieved: {len(results) if results else 0} items")
+
+        if not results:
+            await message.reply_text("I'm terribly sorry, but my search has yielded no results. Perhaps we might try a different approach?", parse_mode="Markdown")
             return
 
-        print(f"🔍 Butler search for {username}: {query}")
-        
         try:
-            results = search_brave(query)
-            print(f"🔎 Search results retrieved: {len(results) if results else 0} items")
-
-            if not results:
-                await message.reply_text("I'm terribly sorry, but my search has yielded no results. Perhaps we might try a different approach?", parse_mode="Markdown")
-                return
-
-            try:
-                reply = format_search_response(results)
-            except Exception as e:
-                print(f"[Format Error] {e}, falling back to simple format.")
-                reply = "\n".join([f"[{title}]({url})" for title, url, _ in results])
-
-            # Split into chunks and send
-            for chunk in split_message(reply):
-                try:
-                    await context.bot.send_message(
-                        chat_id=chat_id,
-                        text=chunk,
-                        parse_mode="MarkdownV2"
-                    )
-                except Exception as e:
-                    print(f"[Send Error] {e}, retrying without parse_mode.")
-                    await context.bot.send_message(
-                        chat_id=chat_id,
-                        text=chunk  # Retry in plain text if formatting fails
-                    )
-                    
+            reply = format_search_response(results)
         except Exception as e:
-            print(f"[Search Error] {e}")
-            await message.reply_text("I apologize for the inconvenience, but I encountered an issue with your search request.")
-        return
+            print(f"[Format Error] {e}, falling back to simple format.")
+            reply = "\n".join([f"[{title}]({url})" for title, url, _ in results])
+
+        # Split into chunks and send
+        for chunk in split_message(reply):
+            try:
+                await context.bot.send_message(
+                    chat_id=chat_id,
+                    text=chunk,
+                    parse_mode="MarkdownV2"
+                )
+            except Exception as e:
+                print(f"[Send Error] {e}, retrying without parse_mode.")
+                await context.bot.send_message(
+                    chat_id=chat_id,
+                    text=chunk  # Retry in plain text if formatting fails
+                )
+                
+    except Exception as e:
+        print(f"[Search Error] {e}")
+        await message.reply_text("I apologize for the inconvenience, but I encountered an issue with your search request.")
+    return
 
     # --- Bot Mention Trigger ---
     if is_mention or is_reply_to_bot:

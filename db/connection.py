@@ -24,8 +24,8 @@ def get_database_connection():
         connection = mysql.connector.connect(
             host=os.getenv("DB_HOST"),
             user=os.getenv("DB_USER"), 
-            password=os.getenv("DB_PASS"),
             database=os.getenv("DB_NAME"),
+            password=os.getenv("DB_PASS"),
             charset='utf8mb4',
             collation='utf8mb4_unicode_ci',
             autocommit=False
@@ -63,35 +63,61 @@ async def insert_message_to_db(msg_type: str, date: str, date_unixtime: int,
             connection.close()
 
 
-def fetch_messages_between(start_dt, end_dt, source):
+async def fetch_messages_between(start_dt, end_dt, chat_id):
     """
-    Fetch messages between specified time ranges for a specific source.
+    Fetch messages between specified time ranges.
     
     Args:
         start_dt (str): Start datetime in 'YYYY-MM-DD HH:MM:SS' format
         end_dt (str): End datetime in 'YYYY-MM-DD HH:MM:SS' format  
-        source (str): Chat/sender ID to filter by
+        chat_id (str): Chat ID to filter by (currently unused as we fetch all messages)
         
     Returns:
-        list: List of dictionaries containing message data
+        list: List of message texts only for summarization
     """
     conn = None
     try:
-        conn = get_connection()
+        conn = get_database_connection()
         with conn.cursor(dictionary=True) as cursor:
-            # Fixed query to use correct table and column names
+            # First, let's check what's in our date range
+            check_query = """
+                SELECT MIN(date) as earliest, MAX(date) as latest, COUNT(*) as total
+                FROM messages
+                WHERE date BETWEEN %s AND %s
+            """
+            cursor.execute(check_query, (start_dt, end_dt))
+            stats = cursor.fetchone()
+            logger.info(f"Date range check: {stats}")
+
+            # Main query
             query = """
-                SELECT id, msg_type, date, date_unixtime, sender_name, sender_id, text as content
+                SELECT sender_name, text, date
                 FROM messages 
-                WHERE date BETWEEN %s AND %s AND sender_id = %s
+                WHERE date BETWEEN %s AND %s
+                AND text IS NOT NULL
+                AND text != ''
                 ORDER BY date ASC
             """
             
-            cursor.execute(query, (start_dt, end_dt, source))
+            cursor.execute(query, (start_dt, end_dt))
             results = cursor.fetchall()
             
-            logger.info(f"Fetched {len(results)} messages between {start_dt} and {end_dt}")
-            return results
+            # Debug information
+            logger.info(f"Query parameters: start={start_dt}, end={end_dt}")
+            logger.info(f"Raw results count: {len(results)}")
+            
+            # Format messages with sender names
+            messages = [f"{row['sender_name']}: {row['text']}" for row in results if row['text']]
+            
+            logger.info(f"Fetched {len(messages)} messages between {start_dt} and {end_dt}")
+            
+            # If no messages found, check total message count
+            if not messages:
+                cursor.execute("SELECT COUNT(*) as total FROM messages")
+                total = cursor.fetchone()['total']
+                logger.info(f"Total messages in database: {total}")
+            
+            return messages
             
     except mysql.connector.Error as e:
         logger.error(f"Database fetch error: {e}")

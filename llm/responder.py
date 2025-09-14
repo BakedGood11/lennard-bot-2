@@ -153,7 +153,7 @@ def _make_ollama_request(prompt: str, request_type: str, timeout: int = DEFAULT_
 
 
 
-def summarize_messages(messages: list[str], max_length: int = 1500) -> str:
+async def summarize_messages(messages: list[str], max_length: int = 1500) -> str:
     """Summarize a list of messages in a butler-appropriate style."""
     if not messages:
         return "I regret to inform you that there are no messages to summarize."

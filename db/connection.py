@@ -63,13 +63,13 @@ async def insert_message_to_db(msg_type: str, date: str, date_unixtime: int,
             connection.close()
 
 
-async def fetch_messages_between(start_dt, end_dt, chat_id):
+async def fetch_messages_between(start_dt, end_dt, sender_id):
     """
-    Fetch messages between specified time ranges.
+    Fetch messages between specified time ranges (local Manila time).
     
     Args:
-        start_dt (str): Start datetime in 'YYYY-MM-DD HH:MM:SS' format
-        end_dt (str): End datetime in 'YYYY-MM-DD HH:MM:SS' format  
+        start_dt (str): Start datetime in 'YYYY-MM-DD HH:MM:SS' Manila time
+        end_dt (str): End datetime in 'YYYY-MM-DD HH:MM:SS' Manila time  
         chat_id (str): Chat ID to filter by (currently unused as we fetch all messages)
         
     Returns:
@@ -79,21 +79,25 @@ async def fetch_messages_between(start_dt, end_dt, chat_id):
     try:
         conn = get_database_connection()
         with conn.cursor(dictionary=True) as cursor:
-            # First, let's check what's in our date range
+            # Check query in Manila time
             check_query = """
-                SELECT MIN(date) as earliest, MAX(date) as latest, COUNT(*) as total
+                SELECT MIN(CONVERT_TZ(date, '+00:00', 'Asia/Manila')) as earliest,
+                       MAX(CONVERT_TZ(date, '+00:00', 'Asia/Manila')) as latest,
+                       COUNT(*) as total
                 FROM messages
-                WHERE date BETWEEN %s AND %s
+                WHERE CONVERT_TZ(date, '+00:00', 'Asia/Manila') BETWEEN %s AND %s
             """
             cursor.execute(check_query, (start_dt, end_dt))
             stats = cursor.fetchone()
             logger.info(f"Date range check: {stats}")
 
-            # Main query
+            # Main query in Manila time
             query = """
-                SELECT sender_name, text, date
+                SELECT sender_name,
+                       text,
+                       CONVERT_TZ(date, '+00:00', 'Asia/Manila') as local_time
                 FROM messages 
-                WHERE date BETWEEN %s AND %s
+                WHERE CONVERT_TZ(date, '+00:00', 'Asia/Manila') BETWEEN %s AND %s
                 AND text IS NOT NULL
                 AND text != ''
                 ORDER BY date ASC
@@ -102,7 +106,6 @@ async def fetch_messages_between(start_dt, end_dt, chat_id):
             cursor.execute(query, (start_dt, end_dt))
             results = cursor.fetchall()
             
-            # Debug information
             logger.info(f"Query parameters: start={start_dt}, end={end_dt}")
             logger.info(f"Raw results count: {len(results)}")
             
@@ -111,7 +114,6 @@ async def fetch_messages_between(start_dt, end_dt, chat_id):
             
             logger.info(f"Fetched {len(messages)} messages between {start_dt} and {end_dt}")
             
-            # If no messages found, check total message count
             if not messages:
                 cursor.execute("SELECT COUNT(*) as total FROM messages")
                 total = cursor.fetchone()['total']

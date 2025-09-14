@@ -11,7 +11,7 @@ import pytz
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from llm.responder import generate_sassy_reply, summarize_messages
+from llm.responder import generate_sassy_reply, summarize_messages, split_message
 from llm.search import search_brave
 from llm.formatter import format_search_response
 from llm.dice import handle_dice_roll
@@ -20,6 +20,7 @@ from db.connection import insert_message_to_db, fetch_messages_between
 
 
 def parse_time_window(text: str):
+    """Parse time window expressions from text with proper timezone handling."""
     ph_tz = pytz.timezone("Asia/Manila")
     now = datetime.now(ph_tz)
 
@@ -44,8 +45,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not message or not message.text:
         return
 
-    # Ignore messages older than 30s
-    if update.message.date < datetime.now(timezone.utc) - timedelta(seconds=30):
+    # Ignore messages older than 30s (using consistent UTC timezone handling)
+    utc_now = datetime.now(timezone.utc)
+    if update.message.date < utc_now - timedelta(seconds=30):
         return
 
     user = message.from_user
@@ -66,11 +68,15 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # Log every message to DB
-    insert_message_to_db(
-        title=username,
-        content=text,
-        source=str(chat_id)
-    )
+    try:
+        insert_message_to_db(
+            title=username,
+            content=text,
+            source=str(chat_id),
+            msg_type="text"
+        )
+    except Exception as e:
+        print(f"[DB Error] Failed to log message: {e}")
 
     # --- Summarization Trigger ---
     if is_mention and ("summarize" in text.lower() or "tl;dr" in text.lower()):
@@ -85,46 +91,69 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         start_utc = start_dt.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M:%S")
         end_utc = end_dt.astimezone(pytz.utc).strftime("%Y-%m-%d %H:%M:%S")
 
-        messages = fetch_messages_between(start_utc, end_utc, str(chat_id))
-        message_texts = [msg["content"] for msg in messages]
+        try:
+            messages = fetch_messages_between(start_utc, end_utc, str(chat_id))
+            message_texts = [msg["content"] for msg in messages]
 
-        if message_texts:
-            summary = summarize_messages(message_texts)
-            await message.reply_text(summary)
-        else:
-            await message.reply_text("Nothing but foolish prattle to summarize.")
+            if message_texts:
+                summary = summarize_messages(message_texts)
+                await message.reply_text(f"Very good, {username}. Here is your requested summary:\n\n{summary}")
+            else:
+                await message.reply_text("I regret to inform you that there are no messages to summarize from the specified timeframe, sir.")
+        except Exception as e:
+            print(f"[Summarization Error] {e}")
+            await message.reply_text("I apologize, but I encountered an issue while preparing your summary. Please try again.")
         return
 
     # --- Search Trigger ---
     if text.lower().startswith("!search") or "google" in text.lower():
         query = re.sub(r"^.*!search", "", text, flags=re.IGNORECASE).strip()
         if not query:
-            await message.reply_text("Precious, give us something to search!", parse_mode="Markdown")
+            await message.reply_text("Certainly, but might I suggest providing a search query, sir?", parse_mode="Markdown")
             return
 
-        print(f"🔍 Search for Precious: {query}")
-        results = search_brave(query)
-        print(f"🔎 Search shadows: {results}")
-
-        if not results:
-            await message.reply_text("Our nets catch nothing. Blame the hobbits!", parse_mode="Markdown")
-            return
-
+        print(f"🔍 Butler search for {username}: {query}")
+        
         try:
-            reply = format_search_response(results)
-        except Exception as e:
-            print(f"[Format Error] {e}, falling back.")
-            reply = "\n".join([f"[{title}]({url})" for title, url, _ in results])
+            results = search_brave(query)
+            print(f"🔎 Search results retrieved: {len(results) if results else 0} items")
 
-        await message.reply_text(reply, parse_mode="Markdown")
+            if not results:
+                await message.reply_text("I'm terribly sorry, but my search has yielded no results. Perhaps we might try a different approach?", parse_mode="Markdown")
+                return
+
+            try:
+                reply = format_search_response(results)
+            except Exception as e:
+                print(f"[Format Error] {e}, falling back to simple format.")
+                reply = "\n".join([f"[{title}]({url})" for title, url, _ in results])
+
+            # Split into chunks and send
+            for chunk in split_message(reply):
+                try:
+                    await context.bot.send_message(
+                        chat_id=chat_id,
+                        text=chunk,
+                        parse_mode="MarkdownV2"
+                    )
+                except Exception as e:
+                    print(f"[Send Error] {e}, retrying without parse_mode.")
+                    await context.bot.send_message(
+                        chat_id=chat_id,
+                        text=chunk  # Retry in plain text if formatting fails
+                    )
+                    
+        except Exception as e:
+            print(f"[Search Error] {e}")
+            await message.reply_text("I apologize for the inconvenience, but I encountered an issue with your search request.")
         return
 
     # --- Bot Mention Trigger ---
     if is_mention or is_reply_to_bot:
         user_input = re.sub(f"@{bot_username}", "", text, flags=re.IGNORECASE).strip()
-        print(f"💬 Precious mention by {username}: {user_input}")
+        print(f"💬 Butler mention by {username}: {user_input}")
         if not user_input:
-            await message.reply_text("You called us, but said nothing, precious? Typical.")
+            await message.reply_text(f"You rang, {username}? How may I be of service?")
             return
 
         # Dice rolls
@@ -132,37 +161,43 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if dice:
             await context.bot.send_message(
                 chat_id=chat_id,
-                text=dice,
+                text=f"Certainly, {username}. {dice}",
                 reply_to_message_id=message.message_id
             )
             return
 
-        # Gollum/Smeagol reply
-        reply = generate_sassy_reply(user_input, username)
-        await message.reply_text(reply)
+        # Butler reply (you'll need to update generate_sassy_reply to generate_butler_reply)
+        try:
+            reply = generate_sassy_reply(user_input, username)  # This function needs to be updated for butler personality
+            await message.reply_text(reply)
+        except Exception as e:
+            print(f"[Reply Error] {e}")
+            await message.reply_text("I beg your pardon, but I seem to be having difficulty responding at the moment.")
         return
 
-    # --- Random Gollum/Smeagol Phrases (3% chance) ---
-    random_phrases_bank1 = [
-        "Smeagol waits for kind words, yesss.",
-        "We remembers happier times, preciousssss.",
-        "Do not fear, Smeagol will guides you.",
-        "Precious believes in you, yess precious.",
-        "Quiet now, Smeagol listens... patiently.",
-        "You can do it, precious one!",
+    # --- Random Encouraging Butler Phrases (3% chance) ---
+    butler_encouragement = [
+        "Might I say, you're doing excellently today, sir.",
+        "Your presence graces this conversation, if I may say so.",
+        "Allow me to remind you that perseverance is a noble virtue.",
+        "I have every confidence in your abilities, sir.",
+        "A moment of patience, if you would. Good things await.",
+        "Your dedication does not go unnoticed, I assure you.",
     ]
     if random.random() < 0.03:
-        await message.reply_text(random.choice(random_phrases_bank1))
+        await message.reply_text(random.choice(butler_encouragement))
         return
 
-    # --- Random Allen-themed Insults (8% chance) ---
-    random_phrases_bank2 = [
-        "Allen will throw you into Mount Doom for that!",
-        "Even Allen knew better than to bother us with nonsense like this.",
-        "Gollum!",
-        "Allen persevered through worse than your petty prattle.",
-        "Allen!",
+    # --- Random Butler Observations (8% chance) ---
+    butler_observations = [
+        "One must maintain proper decorum in all endeavors.",
+        "Excellence is achieved through attention to detail, wouldn't you agree?",
+        "*adjusts collar with dignified precision*",
+        "A well-ordered approach serves one best, I find.",
+        "Indeed, sir. Most enlightening conversation.",
+        "Quite right. Standards must be maintained.",
+        "As you wish, sir. The matter shall be attended to.",
     ]
-    if random.random() < 0.05:
-        await message.reply_text(random.choice(random_phrases_bank2))
+    if random.random() < 0.08:  # Fixed the probability to match the comment
+        await message.reply_text(random.choice(butler_observations))
         return

@@ -13,7 +13,7 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def get_connection():
+def get_database_connection():
     """
     Establish connection to the MySQL database using environment variables.
     
@@ -22,10 +22,10 @@ def get_connection():
     """
     try:
         connection = mysql.connector.connect(
-            host=os.getenv("DB_HOST", "192.168.1.120"),
-            user=os.getenv("DB_USER", "lennard"), 
-            password=os.getenv("DB_PASS", "745311"),
-            database=os.getenv("DB_NAME", "telegram"),
+            host=os.getenv("DB_HOST"),
+            user=os.getenv("DB_USER"), 
+            password=os.getenv("DB_PASS"),
+            database=os.getenv("DB_NAME"),
             charset='utf8mb4',
             collation='utf8mb4_unicode_ci',
             autocommit=False
@@ -36,57 +36,31 @@ def get_connection():
         raise
 
 
-def insert_message_to_db(title, content, source, msg_type="text"):
-    """
-    Insert a message into the messages table.
-    
-    Args:
-        title (str): Sender name (maps to sender_name)
-        content (str): Message text (maps to text)
-        source (str): Chat/sender ID (maps to sender_id)
-        msg_type (str): Type of message (default: "text")
-    """
-    conn = None
+async def insert_message_to_db(msg_type: str, date: str, date_unixtime: int, 
+                             sender_name: str, sender_id: str, text: str) -> None:
+    """Insert a message into the database."""
     try:
-        conn = get_connection()
-        with conn.cursor() as cursor:
-            # Fixed query to match your actual table structure
-            query = """
-                INSERT INTO messages (msg_type, date, date_unixtime, sender_name, sender_id, text)
-                VALUES (%s, %s, %s, %s, %s, %s)
-            """
-            
-            # Get current time in both formats
-            now = datetime.now(pytz.UTC)
-            date_str = now.strftime("%Y-%m-%d %H:%M:%S")
-            date_unix = int(time.time())
-            
-            # Execute with correct parameter mapping
-            cursor.execute(query, (
-                msg_type,      # msg_type
-                date_str,      # date  
-                date_unix,     # date_unixtime
-                title,         # sender_name
-                source,        # sender_id (chat_id)
-                content        # text
-            ))
-            
-            conn.commit()
-            logger.info(f"Message inserted successfully for {title}")
-            
-    except mysql.connector.Error as e:
-        logger.error(f"Database insert error: {e}")
-        if conn:
-            conn.rollback()
-        raise
+        connection = get_database_connection()
+        cursor = connection.cursor()
+        
+        query = """
+        INSERT INTO messages (msg_type, date, date_unixtime, sender_name, sender_id, text)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        """
+        values = (msg_type, date, date_unixtime, sender_name, sender_id, text)
+        
+        cursor.execute(query, values)
+        connection.commit()
+        
+        logging.info(f"Message inserted successfully for {sender_name}")
+        
     except Exception as e:
-        logger.error(f"Unexpected error during insert: {e}")
-        if conn:
-            conn.rollback()
+        logging.error(f"Database error: {e}")
         raise
     finally:
-        if conn and conn.is_connected():
-            conn.close()
+        if 'connection' in locals() and connection.is_connected():
+            cursor.close()
+            connection.close()
 
 
 def fetch_messages_between(start_dt, end_dt, source):

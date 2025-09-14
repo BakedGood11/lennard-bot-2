@@ -80,7 +80,7 @@ def format_search_response(results: list[tuple[str, str, str]], max_entries: int
                 version=2
             )
             
-        return f"{intro}\n\n{'\n\n'.join(body_lines)}"
+        return "{}\n\n{}".format(intro, "\n\n".join(body_lines))
         
     except Exception as e:
         print(f"[Format Error] Major error in format_search_response: {e}")

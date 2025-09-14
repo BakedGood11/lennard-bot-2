@@ -135,14 +135,18 @@ def _generate_friendly_butler_response(sides: int, result: int) -> str:
 
 
 def _get_butler_wisdom() -> str:
-    """Return occasional butler wisdom about fortune and chance."""
+    """Return occasional butler wisdom about fortune and chance, with references to Allen, the bot's master."""
     wisdom_quotes = [
         "As my grandfather used to say, 'Fortune favors the prepared mind,' sir.",
         "I've observed that luck often accompanies those who approach challenges with proper dignity.",
         "In my years of service, I've learned that chance rewards those who maintain their composure.",
         "Might I note that the finest outcomes often arise from the most unexpected circumstances?",
         "Experience has taught me that persistence often trumps fortune, sir.",
-        "I find that maintaining one's standards helps weather both good fortune and poor rolls alike."
+        "I find that maintaining one's standards helps weather both good fortune and poor rolls alike.",
+        "Master Allen always reminds me that a steady hand and a calm mind are the best companions for any roll.",
+        "As Master Allen would say, 'A gentleman never blames the dice, only his preparation.'",
+        "It is Allen, my master, who taught me that every roll is an opportunity for grace, regardless of the outcome.",
+        "Master Allen insists that true fortune lies not in the roll, but in how one responds to it."
     ]
     
     return random.choice(wisdom_quotes)

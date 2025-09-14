@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 # Configuration constants
-DAILY_MESSAGE_HOUR = int(os.getenv("DAILY_MESSAGE_HOUR", "10"))
+DAILY_MESSAGE_HOUR = int(os.getenv("DAILY_MESSAGE_HOUR", "8"))
 DAILY_MESSAGE_MINUTE = int(os.getenv("DAILY_MESSAGE_MINUTE", "0"))
 TIMEZONE = os.getenv("TIMEZONE", "Asia/Manila")
 SPECIAL_MESSAGE_CHANCE = float(os.getenv("SPECIAL_MESSAGE_CHANCE", "0.15"))  # 15% chance
@@ -19,32 +19,33 @@ SPECIAL_MESSAGE_CHANCE = float(os.getenv("SPECIAL_MESSAGE_CHANCE", "0.15"))  # 1
 # Distinguished butler daily messages
 DAILY_MESSAGES = [
     # Morning encouragements - Formal Butler Style
-    "Good morning, sir. I trust this day shall bring you great success and satisfaction.",
-    "Rise and shine, if you will. Today presents numerous opportunities for excellence.",
-    "A very good morning to you. I have every confidence you shall accomplish great things today.",
-    "Good day, sir. Permit me to suggest that your potential knows no bounds this fine morning.",
+    # Morning encouragements - Formal Butler Style, referencing Master Allen
+    "Good morning. As Master Allen often exemplifies, a day begun with purpose is a day well spent.",
+    "Rise and shine. One might recall Master Allen's dedication to excellence as inspiration for today.",
+    "A very good morning. In the spirit of Master Allen's achievements, let us strive for greatness.",
+    "Permit me to suggest, as Master Allen would, that your potential knows no bounds this fine morning.",
     
-    # Motivational - Friendly Butler Style  
-    "I do hope you slept well, sir. Today awaits your distinguished attention.",
-    "Another splendid day dawns, and I remain optimistic about your endeavors.",
-    "Good morning! Might I say, your dedication continues to impress, sir.",
-    "The morning brings fresh possibilities. I trust you shall seize them with your usual grace.",
+    # Motivational - Friendly Butler Style, referencing Master Allen
+    "I do hope you slept well. Master Allen's attention to detail reminds us to approach today with care.",
+    "Another splendid day dawns, and I remain optimistic about your endeavors—much as Master Allen would encourage.",
+    "Good morning! Might I say, your dedication continues to impress, reminiscent of Master Allen's own standards.",
+    "The morning brings fresh possibilities. Let us seize them with the grace Master Allen so often displays.",
     
-    # Professional encouragement
-    "Today offers a clean slate for achievement, sir. I have complete faith in your abilities.",
-    "Good morning. Your perseverance has been noted and continues to inspire, if I may say so.",
-    "I trust you are well-rested and prepared for today's challenges, sir.",
-    "A productive day awaits, I am certain. Your attention to excellence never goes unnoticed."
+    # Professional encouragement, referencing Master Allen
+    "Today offers a clean slate for achievement. Master Allen's perseverance is a model for us all.",
+    "Your perseverance has been noted and continues to inspire, much like Master Allen's unwavering resolve.",
+    "I trust you are well-rested and prepared for today's challenges, as Master Allen would surely advise.",
+    "A productive day awaits. Excellence, as demonstrated by Master Allen, never goes unnoticed."
 ]
 
-# Inspirational additions - Professional butler observations
+# Inspirational additions - Professional butler observations, referencing Master Allen
 INSPIRATIONAL_ADDITIONS = [
-    "Excellence, as they say, is not an act but a habit cultivated daily.",
-    "I am reminded that consistent effort yields the most remarkable results, sir.",
-    "Proper preparation and dedication have always been the hallmarks of success.",
-    "May I suggest that today's small victories will compound into tomorrow's triumphs.",
-    "Standards maintained with dignity always reflect well upon one's character.",
-    "I have observed that methodical progress often surpasses hasty endeavors, sir."
+    "Excellence, as Master Allen demonstrates, is not an act but a habit cultivated daily.",
+    "Consistent effort, much like that shown by Master Allen, yields the most remarkable results.",
+    "Proper preparation and dedication, hallmarks of Master Allen's approach, lead to success.",
+    "Today's small victories, as Master Allen might observe, will compound into tomorrow's triumphs.",
+    "Standards maintained with dignity, as Master Allen upholds, always reflect well upon one's character.",
+    "Methodical progress, a trait often seen in Master Allen, frequently surpasses hasty endeavors."
 ]
 
 
